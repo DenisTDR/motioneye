@@ -1,5 +1,5 @@
 FROM debian:buster-slim
-LABEL maintainer="Marcus Klein <himself@kleini.org>"
+LABEL maintainer="Denis TDR <himself@tdrs.ro>"
 
 ARG BUILD_DATE
 ARG VCS_REF
@@ -37,13 +37,21 @@ RUN echo "deb http://snapshot.debian.org/archive/debian/$(date +%Y%m%d) buster c
       python-tz \
       python-wheel \
       v4l-utils \
-      motion \
-      default-libmysqlclient-dev && \
-    # Change uid/gid of user/group motion to match our desired IDs.  This will
-    # make it easier to use execute motion as our desired user later.
-    sed -i -e "s/^\(motion:[^:]*\):[0-9]*:[0-9]*:\(.*\)/\1:${RUN_UID}:${RUN_GID}:\2/" /etc/passwd && \
-    sed -i -e "s/^\(motion:[^:]*\):[0-9]*:\(.*\)/\1:${RUN_GID}:\2/" /etc/group && \
-    pip install /tmp/motioneye && \
+      default-libmysqlclient-dev
+
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -t buster --yes --option Dpkg::Options::="--force-confnew" --no-install-recommends install \
+      wget
+
+RUN wget https://github.com/Motion-Project/motion/releases/download/release-4.4.0/buster_motion_4.4.0-1_amd64.deb && \
+    dpkg -i buster_motion_4.4.0-1_amd64.deb
+
+# Change uid/gid of user/group motion to match our desired IDs.  This will
+# make it easier to use execute motion as our desired user later.
+RUN sed -i -e "s/^\(motion:[^:]*\):[0-9]*:[0-9]*:\(.*\)/\1:${RUN_UID}:${RUN_GID}:\2/" /etc/passwd && \
+    sed -i -e "s/^\(motion:[^:]*\):[0-9]*:\(.*\)/\1:${RUN_GID}:\2/" /etc/group
+
+
+RUN pip install /tmp/motioneye && \
     # Cleanup
     rm -rf /tmp/motioneye && \
     apt-get purge --yes python-setuptools python-wheel && \
